@@ -14,11 +14,14 @@ import sklearn.metrics
 import scipy.special
 
 
-def load_data():
+def load_data(nrows=1_000_000):
     df = pd.read_csv(
         "~/data/avazu/train",
-        nrows=1000000
+        nrows=nrows,
     )
+#     df = pd.read_feather(
+#         "~/data/avazu/train_10M.feather",
+#     )
     target = "click"
     CAT_COLS = [
         "C1", "banner_pos", 
@@ -29,8 +32,8 @@ def load_data():
     df_final = pd.concat([
         df[target], df_enc
     ], axis=1)
-    Xs = df_enc.values
-    y = df[target].values
+    Xs = df_enc.values[:nrows]
+    y = df[target].values[:nrows]
     return Xs,y
 
 
@@ -44,9 +47,9 @@ class LinearModel(nn.Module):
         return x
 
 def train_torch():
-    Xs, y = load_data()
+    Xs, y = load_data(nrows=1_000_000)
     print("Loaded Data")
-    xt = torch.from_numpy(Xs.astype(np.float32))
+    xt = torch.from_numpy(Xs)
     yt = torch.from_numpy(y)
 
     train_data = utils.TensorDataset(xt,yt)
@@ -92,7 +95,7 @@ def predict(Xs, theta):
     return h
 
 def train_numpy():
-    Xs, y = load_data()
+    Xs, y = load_data(nrows=4_000_000)
     Xc = np.concatenate([
         np.repeat(1, repeats=Xs.shape[0]).reshape(-1,1),
         Xs
