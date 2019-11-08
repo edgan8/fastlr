@@ -125,8 +125,12 @@ def train_numpy():
         X_b = Xc[start_idx:start_idx+batch_size]
         y_b = y[start_idx:start_idx+batch_size]
         cur_grad = calc_grad(X_b, y_b, theta)
-        mt = b1*mt + (1-b1)*cur_grad
-        vt = b2*vt + (1-b2)*(cur_grad * cur_grad)
+        mt *= b1
+        mt += (1-b1)*cur_grad
+#         mt = b1*mt + (1-b1)*cur_grad
+        vt *= b2
+        vt += (1-b2)*(cur_grad * cur_grad)
+#         vt = b2*vt + (1-b2)*(cur_grad * cur_grad)
         at = (lr/math.sqrt(t))*np.sqrt(1-b2t)/(1-b1t)
 #         at = lr * np.sqrt(1-b2t)/(1-b1t)
         theta -= at*mt/(np.sqrt(vt)+eps)
