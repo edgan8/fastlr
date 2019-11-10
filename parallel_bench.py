@@ -1,3 +1,11 @@
+import os
+os.environ["OMP_NUM_THREADS"] = "1" # export OMP_NUM_THREADS=4
+os.environ["OPENBLAS_NUM_THREADS"] = "1" # export OPENBLAS_NUM_THREADS=4 
+os.environ["MKL_NUM_THREADS"] = "1" # export MKL_NUM_THREADS=6
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1" # export VECLIB_MAXIMUM_THREADS=4
+os.environ["NUMEXPR_NUM_THREADS"] = "1" # export NUMEXPR_NUM_THREADS=6
+
+
 import pandas as pd
 import sklearn
 import sklearn.linear_model
@@ -77,13 +85,14 @@ def gradient_worker(ps, X, y, batch_size):
         X_b = X[start_idx:start_idx+batch_size]
         y_b = y[start_idx:start_idx+batch_size]
         cur_theta = ray.get(ps.get_params.remote())
-        cur_grad = calc_grad(X_b, y_b, cur_theta)
+        with ray.profile("Calculate Grad"):
+            cur_grad = calc_grad(X_b, y_b, cur_theta)
         ps.update_params.remote(cur_grad)
 
         start_idx += batch_size
 
 def train_remote(X, y, num_processes, batch_size):
-    ray.init(num_cpus=5)
+    ray.init(num_cpus=6)
     X_parts = np.array_split(X, num_processes)
     y_parts = np.array_split(y, num_processes)
     X_ids = [ray.put(X_part) for X_part in X_parts]
@@ -123,7 +132,7 @@ def train_local(X, y, batch_size):
     return opt.get_params()
 
 def load_data():
-    df = pd.read_feather("~/data/avazu/train_10M.feather")
+    df = pd.read_csv("data/train_5M.csv", nrows=4000000)
     target = "click"
     CAT_COLS = [
         "C1", "banner_pos", 
@@ -155,9 +164,10 @@ def evaluate(X, y, theta):
 def main():
     X,y = load_data()
     batch_size = 10000
-    # 1.7 seconds
-    # theta = train_local(X, y, batch_size=10000)
-    theta = train_remote(X, y, batch_size=10000, num_processes=4)
+    # .9 seconds
+    # theta = train_local(X, y, batch_size=batch_size)
+    # 1.0 seconds
+    theta = train_remote(X, y, batch_size=batch_size, num_processes=4)
     evaluate(X, y, theta)
 
 if __name__ == "__main__":
