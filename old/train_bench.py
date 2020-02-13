@@ -16,7 +16,7 @@ import scipy.special
 
 def load_data(nrows=1_000_000):
     df = pd.read_csv(
-        "~/data/avazu/train",
+        "~/Documents/datasets/avazu/train.csv",
         nrows=nrows,
     )
 #     df = pd.read_feather(
